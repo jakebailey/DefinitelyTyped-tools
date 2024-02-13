@@ -4,6 +4,7 @@
   "description": "Runs tests on TypeScript definition files",
   "main": "./dist/index.js",
   "bin": "./dist/index.js",
+  "tsconfig": "./tsconfig-base/tsconfig.json",
   "publishConfig": {
     "access": "public"
   },

@@ -4,4 +4,4 @@ logs
 .DS_Store
 .vscode
 *.tsbuildinfo
-tsconfig.json
+/tsconfig.json
