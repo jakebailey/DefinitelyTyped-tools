@@ -110,12 +110,12 @@ async function computeChangedPackages(allPackages: AllPackages, log: LoggerWithE
 }
 
 async function isAlreadyDeprecated(pkg: NotNeededPackage, log: LoggerWithErrors): Promise<unknown> {
-  const offline = await pacote.manifest(pkg.name, { cache: cacheDir, offline: true }).catch((reason) => {
+  const offline = await pacote.manifest(`${pkg.name}@latest`, { cache: cacheDir, offline: true }).catch((reason) => {
     if (reason.code !== "ENOTCACHED") throw reason;
     return undefined;
   });
   if (offline?.deprecated) return offline.deprecated;
   log.info(`Version info not cached for deprecated package ${pkg.desc}`);
-  const online = await pacote.manifest(pkg.name, { cache: cacheDir, preferOnline: true });
+  const online = await pacote.manifest(`${pkg.name}@latest`, { cache: cacheDir, preferOnline: true });
   return online.deprecated;
 }
