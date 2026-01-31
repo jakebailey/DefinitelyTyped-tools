@@ -17,13 +17,12 @@
       "type": "node"
     },
     {
-      "name": "jest",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "name": "test",
+      "program": "${workspaceFolder}/scripts/test.js",
       "request": "launch",
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "args": [ "definitions-parser"],
       "type": "node"
     },
     {

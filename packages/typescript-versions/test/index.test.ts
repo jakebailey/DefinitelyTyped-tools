@@ -1,8 +1,10 @@
+import { describe, it } from "node:test";
+import assert from "node:assert";
 import { TypeScriptVersion } from "../src";
 
 describe("unsupported", () => {
   it("contains at least 2.9", () => {
-    expect(TypeScriptVersion.unsupported.includes("2.9")).toBeTruthy();
+    assert.ok(TypeScriptVersion.unsupported.includes("2.9"));
   });
 });
 
@@ -10,7 +12,7 @@ describe("all", () => {
   it("doesn't have any holes", () => {
     let prev = TypeScriptVersion.all[0];
     for (const version of TypeScriptVersion.all.slice(1)) {
-      expect(+version * 10 - +prev * 10).toEqual(1);
+      assert.strictEqual(+version * 10 - +prev * 10, 1);
       prev = version;
     }
   });
@@ -18,40 +20,50 @@ describe("all", () => {
 
 describe("isSupported", () => {
   it("works", () => {
-    expect(TypeScriptVersion.isSupported("5.6")).toBeTruthy();
+    assert.ok(TypeScriptVersion.isSupported("5.6"));
   });
   it("supports 5.2", () => {
-    expect(TypeScriptVersion.isSupported("5.2")).toBeTruthy();
+    assert.ok(TypeScriptVersion.isSupported("5.2"));
   });
   it("does not support 4.0", () => {
-    expect(!TypeScriptVersion.isSupported("4.0")).toBeTruthy();
+    assert.ok(!TypeScriptVersion.isSupported("4.0"));
   });
 });
 
 describe("isTypeScriptVersion", () => {
   it("accepts in-range", () => {
-    expect(TypeScriptVersion.isTypeScriptVersion("5.2")).toBeTruthy();
+    assert.ok(TypeScriptVersion.isTypeScriptVersion("5.2"));
   });
   it("rejects out-of-range", () => {
-    expect(TypeScriptVersion.isTypeScriptVersion("101.1")).toBeFalsy();
+    assert.ok(!TypeScriptVersion.isTypeScriptVersion("101.1"));
   });
   it("rejects garbage", () => {
-    expect(TypeScriptVersion.isTypeScriptVersion("it'sa me, luigi")).toBeFalsy();
+    assert.ok(!TypeScriptVersion.isTypeScriptVersion("it'sa me, luigi"));
   });
 });
 
 describe("range", () => {
   it("works", () => {
-    expect(TypeScriptVersion.range("5.2")).toEqual(["5.2", "5.3", "5.4", "5.5", "5.6", "5.7", "5.8", "5.9", "6.0"]);
+    assert.deepStrictEqual(TypeScriptVersion.range("5.2"), [
+      "5.2",
+      "5.3",
+      "5.4",
+      "5.5",
+      "5.6",
+      "5.7",
+      "5.8",
+      "5.9",
+      "6.0",
+    ]);
   });
   it("includes 5.2 onwards", () => {
-    expect(TypeScriptVersion.range("5.2")).toEqual(TypeScriptVersion.supported);
+    assert.deepStrictEqual(TypeScriptVersion.range("5.2"), TypeScriptVersion.supported);
   });
 });
 
 describe("tagsToUpdate", () => {
   it("works", () => {
-    expect(TypeScriptVersion.tagsToUpdate("5.2")).toEqual([
+    assert.deepStrictEqual(TypeScriptVersion.tagsToUpdate("5.2"), [
       "ts5.2",
       "ts5.3",
       "ts5.4",
@@ -65,7 +77,8 @@ describe("tagsToUpdate", () => {
     ]);
   });
   it("allows 5.2 onwards", () => {
-    expect(TypeScriptVersion.tagsToUpdate("5.2")).toEqual(
+    assert.deepStrictEqual(
+      TypeScriptVersion.tagsToUpdate("5.2"),
       TypeScriptVersion.supported.map((s) => "ts" + s).concat("latest"),
     );
   });

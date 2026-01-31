@@ -1,6 +1,7 @@
 {
   "name": "@definitelytyped/dts-critic",
   "version": "0.1.23",
+  "type": "commonjs",
   "author": "Nathan Shively-Sanders",
   "description": "Checks a new .d.ts against the Javascript source and tells you what problems it has",
   "publishConfig": {
@@ -19,7 +20,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -b .",
-    "test": "../../node_modules/.bin/jest --config ../../jest.config.js packages/dts-critic"
+    "test": "node --test dist/index.test.js"
   },
   "repository": {
     "type": "git",

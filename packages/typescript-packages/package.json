@@ -1,6 +1,7 @@
 {
   "name": "@definitelytyped/typescript-packages",
   "version": "0.1.10",
+  "type": "commonjs",
   "description": "Reexport of all supported TypeScript versions",
   "author": "Andrew Branch <andrew@wheream.io>",
   "homepage": "https://github.com/microsoft/DefinitelyTyped-tools/tree/main/packages/typescript-packages#readme",

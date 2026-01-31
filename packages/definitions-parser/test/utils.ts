@@ -1,10 +1,11 @@
+import { it, TestContext } from "node:test";
 import { License } from "@definitelytyped/header-parser";
 import { TypingsVersionsRaw, getMangledNameForScopedPackage } from "../src/packages";
 import { atTypesSlash } from "@definitelytyped/utils";
 
-export function testo(o: { [s: string]: () => void }) {
+export function testo(o: { [s: string]: (t: TestContext) => void | Promise<void> }) {
   for (const k of Object.keys(o)) {
-    test(k, o[k], 100_000);
+    it(k, { timeout: 100_000 }, o[k]);
   }
 }
 

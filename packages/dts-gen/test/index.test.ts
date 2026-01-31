@@ -1,3 +1,4 @@
+import { describe, it } from "node:test";
 import * as tsg from "../src";
 
 const testModuleNames = ["lodash", "jquery", "yargs", "ecurve"];
@@ -33,18 +34,18 @@ const expressions: { [s: string]: any } = {
 
 describe("Module tests", () => {
   for (const moduleName of testModuleNames) {
-    it(`Generates the same declaration for ${moduleName}`, () => {
+    it(`Generates the same declaration for ${moduleName}`, (t) => {
       const result = tsg.generateModuleDeclarationFile(moduleName!, require(moduleName!));
-      expect(result).toMatchSnapshot(`module-${moduleName}.d.ts`);
+      t.assert.snapshot(result);
     });
   }
 });
 
 describe("Expression tests", () => {
   for (const key of Object.keys(expressions)) {
-    it(`Generates the same declaration for ${key}`, () => {
+    it(`Generates the same declaration for ${key}`, (t) => {
       const result = tsg.generateIdentifierDeclarationFile(key!, expressions[key!]);
-      expect(result).toMatchSnapshot(`expr-${key}.d.ts`);
+      t.assert.snapshot(result);
     });
   }
 });

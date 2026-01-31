@@ -1,14 +1,14 @@
+import { describe, it } from "node:test";
+import assert from "node:assert";
 import { ESLint, Linter } from "eslint";
 import path from "path";
 import { globSync } from "glob";
 import { fixtureRoot } from "./util";
-import { toMatchFile } from "jest-file-snapshot";
 import * as plugin from "../src/index";
 import fs from "fs";
 import { normalizeSlashes } from "@definitelytyped/utils";
 import { stripVTControlCharacters } from "util";
 
-expect.extend({ toMatchFile });
 const snapshotDir = path.join(__dirname, "__file_snapshots__");
 
 const allFixtures = globSync(["**/*.ts", "**/*.cts", "**/*.mts", "**/*.tsx"], { cwd: fixtureRoot });
@@ -23,6 +23,17 @@ function getAllLintSnapshots() {
 
 function getAllExpectedLintSnapshots() {
   return new Set(allFixtures.map(getLintSnapshotPath));
+}
+
+function toMatchFile(actual: string, filePath: string): void {
+  const updateSnapshots = process.argv.includes("--test-update-snapshots");
+  if (updateSnapshots || !fs.existsSync(filePath)) {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, actual);
+    return;
+  }
+  const expected = fs.readFileSync(filePath, "utf-8");
+  assert.strictEqual(actual, expected, `Snapshot mismatch for ${filePath}`);
 }
 
 // Force one test per fixture so we can see when a file has no errors.
@@ -41,9 +52,9 @@ for (const fixture of allFixtures) {
       const formatter = await eslint.loadFormatter("stylish");
       const formatted = await formatter.format(results);
       const resultText = stripVTControlCharacters(formatted).trim() || "No errors";
-      expect(resultText).not.toContain("Parsing error");
+      assert.ok(!resultText.includes("Parsing error"), "Should not contain parsing errors");
       const newOutput = formatResultsWithInlineErrors(results);
-      expect(normalizeSnapshot(resultText + "\n\n" + newOutput)).toMatchFile(getLintSnapshotPath(fixture));
+      toMatchFile(normalizeSnapshot(resultText + "\n\n" + newOutput), getLintSnapshotPath(fixture));
     });
   });
 }
@@ -118,6 +129,7 @@ function formatResultsWithInlineErrors(results: ESLint.LintResult[]): string {
 // Similar to https://github.com/storybookjs/storybook/blob/df357020e010f49e7c325942f0c891e6702527d6/code/addons/storyshots-core/src/api/integrityTestTemplate.ts
 describe("lint snapshots", () => {
   it("abandoned snapshots", () => {
+    const updateSnapshots = process.argv.includes("--test-update-snapshots");
     const expectedSnapshots = getAllExpectedLintSnapshots();
     const actualSnapshots = getAllLintSnapshots();
     const abandonedSnapshots = [...actualSnapshots].filter((s) => !expectedSnapshots.has(s));
@@ -126,14 +138,13 @@ describe("lint snapshots", () => {
       return;
     }
 
-    // https://github.com/jestjs/jest/issues/8732#issuecomment-516445064
-    if (expect.getState().snapshotState._updateSnapshot === "all") {
+    if (updateSnapshots) {
       for (const abandoned of abandonedSnapshots) {
         fs.rmSync(abandoned);
       }
       return;
     }
 
-    expect(abandonedSnapshots).toHaveLength(0);
+    assert.strictEqual(abandonedSnapshots.length, 0, `Found abandoned snapshots: ${abandonedSnapshots.join(", ")}`);
   });
 });

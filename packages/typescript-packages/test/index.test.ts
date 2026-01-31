@@ -1,3 +1,5 @@
+import { describe, it } from "node:test";
+import assert from "node:assert";
 import { TypeScriptVersion } from "@definitelytyped/typescript-versions";
 import { resolve } from "../src";
 
@@ -11,11 +13,11 @@ describe("package.json", () => {
     for (const version of TypeScriptVersion.supported) {
       const name = `typescript-${version}`;
       const entry = typescripts.get(name);
-      expect(entry).toBe(`npm:typescript@~${version}.0-0`);
+      assert.strictEqual(entry, `npm:typescript@~${version}.0-0`);
       typescripts.delete(name);
     }
 
-    expect([...typescripts]).toStrictEqual([]);
+    assert.deepStrictEqual([...typescripts], []);
   });
 });
 
@@ -23,8 +25,8 @@ describe("resolve", () => {
   it("resolves to the right version", () => {
     for (const version of TypeScriptVersion.supported) {
       const ts = require(resolve(version));
-      expect(typeof ts.versionMajorMinor).toBe("string");
-      expect(ts.versionMajorMinor).toBe(version);
+      assert.strictEqual(typeof ts.versionMajorMinor, "string");
+      assert.strictEqual(ts.versionMajorMinor, version);
     }
   });
 });

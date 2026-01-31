@@ -1,3 +1,5 @@
+import { describe, it } from "node:test";
+import assert from "node:assert";
 import { validatePackageJson, makeTypesVersionsForPackageJson, License, getLicenseFromPackageJson } from "../src";
 
 describe("validatePackageJson", () => {
@@ -48,72 +50,76 @@ describe("validatePackageJson", () => {
   it("requires private: true", () => {
     const pkg = { ...pkgJson };
     delete pkg.private;
-    expect(validatePackageJson("hapi", pkg, [])).toEqual([
+    assert.deepStrictEqual(validatePackageJson("hapi", pkg, []), [
       `hapi's package.json has bad "private": must be \`"private": true\``,
     ]);
   });
   it("requires name", () => {
     const pkg = { ...pkgJson };
     delete pkg.name;
-    expect(validatePackageJson("hapi", pkg, [])).toEqual(['hapi\'s package.json should have `"name": "@types/hapi"`']);
+    assert.deepStrictEqual(validatePackageJson("hapi", pkg, []), [
+      'hapi\'s package.json should have `"name": "@types/hapi"`',
+    ]);
   });
   it("requires name to match", () => {
-    expect(validatePackageJson("hapi", { ...pkgJson, name: "@types/sad" }, [])).toEqual([
+    assert.deepStrictEqual(validatePackageJson("hapi", { ...pkgJson, name: "@types/sad" }, []), [
       'hapi\'s package.json should have `"name": "@types/hapi"`',
     ]);
   });
   it("requires devDependencies", () => {
     const pkg = { ...pkgJson };
     delete pkg.devDependencies;
-    expect(validatePackageJson("hapi", pkg, [])).toEqual([
+    assert.deepStrictEqual(validatePackageJson("hapi", pkg, []), [
       `hapi's package.json has bad "devDependencies": must include \`"@types/hapi": "workspace:."\``,
     ]);
   });
   it("requires devDependencies to contain self-package", () => {
-    expect(validatePackageJson("hapi", { ...pkgJson, devDependencies: {} }, [])).toEqual([
+    assert.deepStrictEqual(validatePackageJson("hapi", { ...pkgJson, devDependencies: {} }, []), [
       `hapi's package.json has bad "devDependencies": must include \`"@types/hapi": "workspace:."\``,
     ]);
   });
   it("requires devDependencies to contain self-package version 'workspace:.'", () => {
-    expect(validatePackageJson("hapi", { ...pkgJson, devDependencies: { "@types/hapi": "*" } }, [])).toEqual([
+    assert.deepStrictEqual(validatePackageJson("hapi", { ...pkgJson, devDependencies: { "@types/hapi": "*" } }, []), [
       `hapi's package.json has bad "devDependencies": must include \`"@types/hapi": "workspace:."\``,
     ]);
   });
   it("requires version", () => {
     const pkg = { ...pkgJson };
     delete pkg.version;
-    expect(validatePackageJson("hapi", pkg, [])).toEqual([
+    assert.deepStrictEqual(validatePackageJson("hapi", pkg, []), [
       `hapi's package.json should have \`"version"\` matching the version of the implementation package.`,
     ]);
   });
   it("requires version to be NN.NN.NN", () => {
-    expect(validatePackageJson("hapi", { ...pkgJson, version: "hi there" }, [])).toEqual([
+    assert.deepStrictEqual(validatePackageJson("hapi", { ...pkgJson, version: "hi there" }, []), [
       `hapi's package.json has bad "version": "hi there" should look like "NN.NN.9999"`,
     ]);
   });
   it("requires version to end with .9999", () => {
-    expect(validatePackageJson("hapi", { ...pkgJson, version: "1.2.3" }, [])).toEqual([
+    assert.deepStrictEqual(validatePackageJson("hapi", { ...pkgJson, version: "1.2.3" }, []), [
       `hapi's package.json has bad "version": 1.2.3 must end with ".9999"`,
     ]);
   });
   it("works with old-version packages", () => {
-    expect(Array.isArray(validatePackageJson("hapi", { ...pkgJson, version: "16.6.9999" }, []))).toBeFalsy();
+    assert.ok(!Array.isArray(validatePackageJson("hapi", { ...pkgJson, version: "16.6.9999" }, [])));
   });
 });
 
 describe("makeTypesVersionsForPackageJson", () => {
   it("is undefined for empty versions", () => {
-    expect(makeTypesVersionsForPackageJson([])).toBeUndefined();
+    assert.strictEqual(makeTypesVersionsForPackageJson([]), undefined);
   });
   it("works for one version", () => {
-    expect(makeTypesVersionsForPackageJson(["4.5"])).toEqual({
+    assert.deepStrictEqual(makeTypesVersionsForPackageJson(["4.5"]), {
       "<=4.5": {
         "*": ["ts4.5/*"],
       },
     });
   });
   it("orders versions old to new  with old-to-new input", () => {
-    expect(JSON.stringify(makeTypesVersionsForPackageJson(["4.8", "5.0", "5.2"]), undefined, 4)).toEqual(`{
+    assert.strictEqual(
+      JSON.stringify(makeTypesVersionsForPackageJson(["4.8", "5.0", "5.2"]), undefined, 4),
+      `{
     "<=4.8": {
         "*": [
             "ts4.8/*"
@@ -129,10 +135,13 @@ describe("makeTypesVersionsForPackageJson", () => {
             "ts5.2/*"
         ]
     }
-}`);
+}`,
+    );
   });
   it("orders versions old to new  with new-to-old input", () => {
-    expect(JSON.stringify(makeTypesVersionsForPackageJson(["5.2", "5.0", "4.8"]), undefined, 4)).toEqual(`{
+    assert.strictEqual(
+      JSON.stringify(makeTypesVersionsForPackageJson(["5.2", "5.0", "4.8"]), undefined, 4),
+      `{
     "<=4.8": {
         "*": [
             "ts4.8/*"
@@ -148,27 +157,28 @@ describe("makeTypesVersionsForPackageJson", () => {
             "ts5.2/*"
         ]
     }
-}`);
+}`,
+    );
   });
 });
 
-describe(getLicenseFromPackageJson, () => {
+describe("getLicenseFromPackageJson", () => {
   it("returns MIT by default", () => {
-    expect(getLicenseFromPackageJson(undefined)).toBe(License.MIT);
+    assert.strictEqual(getLicenseFromPackageJson(undefined), License.MIT);
   });
 
   it("throws if license is MIT", () => {
-    expect(getLicenseFromPackageJson("MIT")).toEqual([
+    assert.deepStrictEqual(getLicenseFromPackageJson("MIT"), [
       'Specifying \'"license": "MIT"\' is redundant, this is the default.',
     ]);
   });
 
   it("returns known licenses", () => {
-    expect(getLicenseFromPackageJson(License.Apache20)).toBe(License.Apache20);
+    assert.strictEqual(getLicenseFromPackageJson(License.Apache20), License.Apache20);
   });
 
   it("throws if unknown license", () => {
-    expect(getLicenseFromPackageJson("nonsense")).toEqual([
+    assert.deepStrictEqual(getLicenseFromPackageJson("nonsense"), [
       `'package.json' license is "nonsense".
 Expected one of: ["MIT","Apache-2.0"]}`,
     ]);

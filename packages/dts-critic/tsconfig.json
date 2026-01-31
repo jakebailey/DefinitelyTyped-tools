@@ -6,12 +6,12 @@
     "resolveJsonModule": true,
     "outDir": "dist",
     "declaration": true,
-    "types": ["jest", "node"]
+    "types": ["node"]
   },
   "exclude": [
     "dist/*",
     "sources/*",
-    "testsource/*",
+    "testsource/*"
   ],
   "references": [
       { "path": "../header-parser" }

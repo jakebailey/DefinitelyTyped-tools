@@ -1,3 +1,4 @@
+import assert from "node:assert";
 import { getAffectedPackagesWorker } from "../src/get-affected-packages";
 import { NotNeededPackage, AllPackages } from "../src/packages";
 import { testo, createTypingsVersionRaw } from "./utils";
@@ -33,8 +34,8 @@ testo({
       [dependentOutput],
       "/dt",
     );
-    expect(packageNames).toEqual(new Set(["jquery"]));
-    expect(dependents).toEqual(new Set(["known-test", "most-recent"]));
+    assert.deepStrictEqual(packageNames, new Set(["jquery"]));
+    assert.deepStrictEqual(dependents, new Set(["known-test", "most-recent"]));
   },
   async deletedPackage() {
     const packageOutput = ``;
@@ -47,8 +48,8 @@ testo({
       [dependentOutput],
       "/dt",
     );
-    expect(packageNames).toEqual(new Set([]));
-    expect(dependents).toEqual(new Set(["unknown-test"]));
+    assert.deepStrictEqual(packageNames, new Set([]));
+    assert.deepStrictEqual(dependents, new Set(["unknown-test"]));
   },
   async deletedVersion() {
     const packageOutput = `/dt/types/jquery`;
@@ -67,7 +68,7 @@ testo({
       dependentOutput,
       "/dt",
     );
-    expect(packageNames).toEqual(new Set(["jquery"]));
+    assert.deepStrictEqual(packageNames, new Set(["jquery"]));
   },
   async newPackage() {
     const packageOutput = ``;
@@ -80,8 +81,8 @@ testo({
       [dependentOutput],
       "/dt",
     );
-    expect(packageNames).toEqual(new Set(["mistake"]));
-    expect(dependents).toEqual(new Set([]));
+    assert.deepStrictEqual(packageNames, new Set(["mistake"]));
+    assert.deepStrictEqual(dependents, new Set([]));
   },
   async olderVersion() {
     const packageOutput = `/dt/types/jquery`;
@@ -96,7 +97,7 @@ testo({
       [dependentOutput],
       "/dt",
     );
-    expect(packageNames).toEqual(new Set(["jquery"]));
-    expect(dependents).toEqual(new Set(["has-older-test-dependency", "known"]));
+    assert.deepStrictEqual(packageNames, new Set(["jquery"]));
+    assert.deepStrictEqual(dependents, new Set(["has-older-test-dependency", "known"]));
   },
 });

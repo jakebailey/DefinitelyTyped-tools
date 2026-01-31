@@ -1,3 +1,5 @@
+import { describe, it, before, beforeEach } from "node:test";
+import assert from "node:assert";
 import { License } from "@definitelytyped/header-parser";
 import { TypeScriptVersion } from "@definitelytyped/typescript-versions";
 import { Range } from "semver";
@@ -13,10 +15,10 @@ import {
 } from "../src/packages";
 import { createTypingsVersionRaw } from "./utils";
 
-describe(AllPackages, () => {
+describe("AllPackages", () => {
   let allPackages: AllPackages;
 
-  beforeAll(async () => {
+  before(async () => {
     const dt = createMockDT();
     dt.addOldVersionOfPackage("jquery", "1", "1.0.9999");
     allPackages = AllPackages.fromFS(dt.fs);
@@ -25,46 +27,49 @@ describe(AllPackages, () => {
   it("applies path mappings to test dependencies", async () => {
     const pkg = await allPackages.tryGetLatestVersion("has-older-test-dependency");
     for await (const { id } of allPackages.allDependencyTypings(pkg!)) {
-      expect(id).toEqual({ typesDirectoryName: "jquery", version: { major: 1, minor: 0 } });
+      assert.deepStrictEqual(id, { typesDirectoryName: "jquery", version: { major: 1, minor: 0 } });
     }
   });
 
   describe("getNotNeededPackage", () => {
     it("returns specified package", () => {
       const pkg = allPackages.getNotNeededPackage("angular");
-      expect(pkg).toBeTruthy();
-      expect(allPackages.getNotNeededPackage("non-existent")).toBe(undefined);
+      assert.ok(pkg);
+      assert.strictEqual(allPackages.getNotNeededPackage("non-existent"), undefined);
     });
   });
 
   describe("hasTypingFor", () => {
     it("returns true if typings exist", async () => {
-      expect(
+      assert.strictEqual(
         await allPackages.hasTypingFor({
           name: "@types/jquery",
           version: "*",
         }),
-      ).toBe(true);
-      expect(
+        true,
+      );
+      assert.strictEqual(
         await allPackages.hasTypingFor({
           typesDirectoryName: "jquery",
           version: "*",
         }),
-      ).toBe(true);
-      expect(
+        true,
+      );
+      assert.strictEqual(
         await allPackages.hasTypingFor({
           name: "@types/nonExistent",
           version: "*",
         }),
-      ).toBe(false);
+        false,
+      );
     });
   });
 });
 
-describe(TypingsVersions, () => {
+describe("TypingsVersions", () => {
   let versions: TypingsVersions;
 
-  beforeAll(async () => {
+  before(async () => {
     const dt = createMockDT();
     dt.addOldVersionOfPackage("jquery", "1", "1.0.9999");
     dt.addOldVersionOfPackage("jquery", "2", "2.0.9999");
@@ -77,43 +82,48 @@ describe(TypingsVersions, () => {
   });
 
   it("sorts the data from latest to oldest version", () => {
-    expect(Array.from(versions.getAll()).map((v) => v.major)).toEqual([3, 2, 2, 1]);
+    assert.deepStrictEqual(
+      Array.from(versions.getAll()).map((v) => v.major),
+      [3, 2, 2, 1],
+    );
   });
 
   it("returns the latest version", () => {
-    expect(versions.getLatest().major).toEqual(3);
+    assert.strictEqual(versions.getLatest().major, 3);
   });
 
   it("finds the latest version when any version is wanted", () => {
-    expect(versions.get(new Range("*")).major).toEqual(3);
+    assert.strictEqual(versions.get(new Range("*")).major, 3);
   });
 
   it("finds the latest minor version for the given major version", () => {
-    expect(versions.get(new Range("2")).major).toEqual(2);
-    expect(versions.get(new Range("2")).minor).toEqual(5);
+    assert.strictEqual(versions.get(new Range("2")).major, 2);
+    assert.strictEqual(versions.get(new Range("2")).minor, 5);
   });
 
   it("finds a specific version", () => {
-    expect(versions.get(new Range("2.0")).major).toEqual(2);
-    expect(versions.get(new Range("2.0")).minor).toEqual(0);
+    assert.strictEqual(versions.get(new Range("2.0")).major, 2);
+    assert.strictEqual(versions.get(new Range("2.0")).minor, 0);
   });
 
   it("formats a version directory names", () => {
-    expect(versions.get(new Range("2.0")).versionDirectoryName).toEqual("v2");
-    expect(versions.get(new Range("2.0")).subDirectoryPath).toEqual("jquery/v2");
+    assert.strictEqual(versions.get(new Range("2.0")).versionDirectoryName, "v2");
+    assert.strictEqual(versions.get(new Range("2.0")).subDirectoryPath, "jquery/v2");
   });
 
   it("formats missing version error nicely", () => {
-    expect(() => versions.get(new Range("111.1001"))).toThrow(
-      "Could not match version >=111.1001.0 <111.1002.0-0 in 3.3.9999,2.5.9999,2.0.9999,1.0.9999. ",
+    assert.throws(
+      () => versions.get(new Range("111.1001")),
+      /Could not match version >=111.1001.0 <111.1002.0-0 in 3.3.9999,2.5.9999,2.0.9999,1.0.9999. /,
     );
-    expect(() => versions.get(new Range("111"))).toThrow(
-      "Could not match version >=111.0.0 <112.0.0-0 in 3.3.9999,2.5.9999,2.0.9999,1.0.9999. ",
+    assert.throws(
+      () => versions.get(new Range("111")),
+      /Could not match version >=111.0.0 <112.0.0-0 in 3.3.9999,2.5.9999,2.0.9999,1.0.9999. /,
     );
   });
 });
 
-describe(TypingsData, () => {
+describe("TypingsData", () => {
   let data: TypingsData;
 
   beforeEach(() => {
@@ -144,80 +154,80 @@ describe(TypingsData, () => {
   });
 
   it("sets the correct properties", () => {
-    expect(data.name).toBe("@types/known");
-    expect(data.typesDirectoryName).toBe("known");
-    expect(data.libraryName).toBe("known");
-    expect(data.contributors).toEqual([
+    assert.strictEqual(data.name, "@types/known");
+    assert.strictEqual(data.typesDirectoryName, "known");
+    assert.strictEqual(data.libraryName, "known");
+    assert.deepStrictEqual(data.contributors, [
       {
         name: "Bender",
         url: "futurama.com",
       },
     ]);
-    expect(data.major).toBe(1);
-    expect(data.minor).toBe(0);
-    expect(data.minTypeScriptVersion).toBe(TypeScriptVersion.lowest);
-    expect(data.typesVersions).toEqual([]);
-    expect(data.getFiles()).toEqual(["index.d.ts"]);
-    expect(data.license).toBe(License.MIT);
-    expect(data.getContentHash()).toBe("f647d34b5793cea752bc5b892d2099c92f1ced5f13b8a4ec3e4826d9f9cd0163");
-    expect(data.projectName).toBe("zombo.com");
-    expect(data.dependencies).toEqual({
+    assert.strictEqual(data.major, 1);
+    assert.strictEqual(data.minor, 0);
+    assert.strictEqual(data.minTypeScriptVersion, TypeScriptVersion.lowest);
+    assert.deepStrictEqual(data.typesVersions, []);
+    assert.deepStrictEqual(data.getFiles(), ["index.d.ts"]);
+    assert.strictEqual(data.license, License.MIT);
+    assert.strictEqual(data.getContentHash(), "f647d34b5793cea752bc5b892d2099c92f1ced5f13b8a4ec3e4826d9f9cd0163");
+    assert.strictEqual(data.projectName, "zombo.com");
+    assert.deepStrictEqual(data.dependencies, {
       "dependency-1": "*",
     });
-    expect(data.devDependencies).toEqual({
+    assert.deepStrictEqual(data.devDependencies, {
       "@types/known": "workspace:.",
     });
-    expect(data.peerDependencies).toEqual({
+    assert.deepStrictEqual(data.peerDependencies, {
       "peer-dependency-1": "*",
     });
-    expect(data.id).toEqual({
+    assert.deepStrictEqual(data.id, {
       typesDirectoryName: "known",
       version: {
         major: 1,
         minor: 0,
       },
     });
-    expect(data.isNotNeeded()).toBe(false);
+    assert.strictEqual(data.isNotNeeded(), false);
   });
 
   describe("desc", () => {
     it("returns the name if latest version", () => {
-      expect(data.desc).toBe("@types/known");
+      assert.strictEqual(data.desc, "@types/known");
     });
 
     it("returns the versioned name if not latest", () => {
       const versions = createTypingsVersionRaw("known", {}, {});
       data = new TypingsData(createMockDT().fs, versions["1.0"], false);
 
-      expect(data.desc).toBe("@types/known v1.0");
+      assert.strictEqual(data.desc, "@types/known v1.0");
     });
   });
 
   describe("typesDirectoryName", () => {
     it("returns unscoped name", () => {
-      expect(data.typesDirectoryName).toBe("known");
+      assert.strictEqual(data.typesDirectoryName, "known");
     });
 
     it("returns mangled name if scoped", () => {
       const versions = createTypingsVersionRaw("@foo/bar", {}, {});
       data = new TypingsData(createMockDT().fs, versions["1.0"], false);
 
-      expect(data.typesDirectoryName).toBe("foo__bar");
+      assert.strictEqual(data.typesDirectoryName, "foo__bar");
     });
   });
 });
 
-describe(getMangledNameForScopedPackage, () => {
+describe("getMangledNameForScopedPackage", () => {
   it("returns unscoped names as-is", () => {
-    expect(getMangledNameForScopedPackage("foo")).toBe("foo");
+    assert.strictEqual(getMangledNameForScopedPackage("foo"), "foo");
   });
 
   it("returns mangled names for scoped packages", () => {
-    expect(getMangledNameForScopedPackage("@foo/bar")).toBe("foo__bar");
+    assert.strictEqual(getMangledNameForScopedPackage("@foo/bar"), "foo__bar");
   });
 });
 
-describe(NotNeededPackage, () => {
+describe("NotNeededPackage", () => {
   let data: NotNeededPackage;
 
   beforeEach(() => {
@@ -225,56 +235,55 @@ describe(NotNeededPackage, () => {
   });
 
   it("sets the correct properties", () => {
-    expect(data.license).toBe(License.MIT);
-    expect(data.name).toBe("@types/types-package");
-    expect(data.libraryName).toBe("real-package");
-    expect(data.version).toMatchObject({
-      major: 1,
-      minor: 0,
-      patch: 0,
-    });
-    expect(data.major).toBe(1);
-    expect(data.minor).toBe(0);
-    expect(data.isLatest).toBe(true);
-    expect(data.isNotNeeded()).toBe(true);
-    expect(data.minTypeScriptVersion).toBe(TypeScriptVersion.lowest);
-    expect(data.deprecatedMessage()).toBe(
+    assert.strictEqual(data.license, License.MIT);
+    assert.strictEqual(data.name, "@types/types-package");
+    assert.strictEqual(data.libraryName, "real-package");
+    assert.ok(data.version.major === 1 && data.version.minor === 0 && data.version.patch === 0);
+    assert.strictEqual(data.major, 1);
+    assert.strictEqual(data.minor, 0);
+    assert.strictEqual(data.isLatest, true);
+    assert.strictEqual(data.isNotNeeded(), true);
+    assert.strictEqual(data.minTypeScriptVersion, TypeScriptVersion.lowest);
+    assert.strictEqual(
+      data.deprecatedMessage(),
       "This is a stub types definition. real-package provides its own type definitions, so you do not need this installed.",
     );
   });
 
   describe("fromRaw", () => {
     it("throws on uppercase package name", () => {
-      expect(() =>
-        NotNeededPackage.fromRaw("noUISlider", { libraryName: "nouislider", asOfVersion: "16.0.0" }),
-      ).toThrow("not-needed package 'noUISlider' must use all lower-case letters.");
+      assert.throws(
+        () => NotNeededPackage.fromRaw("noUISlider", { libraryName: "nouislider", asOfVersion: "16.0.0" }),
+        /not-needed package 'noUISlider' must use all lower-case letters./,
+      );
     });
     it("throws on uppercase library name", () => {
-      expect(() =>
-        NotNeededPackage.fromRaw("nouislider", { libraryName: "noUISlider", asOfVersion: "16.0.0" }),
-      ).toThrow("not-needed package 'nouislider' must use a libraryName that is all lower-case letters.");
+      assert.throws(
+        () => NotNeededPackage.fromRaw("nouislider", { libraryName: "noUISlider", asOfVersion: "16.0.0" }),
+        /not-needed package 'nouislider' must use a libraryName that is all lower-case letters./,
+      );
     });
   });
 });
 
-describe(getDependencyFromFile, () => {
+describe("getDependencyFromFile", () => {
   it("returns undefined for unversioned paths", () => {
-    expect(getDependencyFromFile("types/a")).toBe(undefined);
+    assert.strictEqual(getDependencyFromFile("types/a"), undefined);
   });
 
   it("returns undefined if not in types directory", () => {
-    expect(getDependencyFromFile("foo/bar/v3/baz")).toBe(undefined);
+    assert.strictEqual(getDependencyFromFile("foo/bar/v3/baz"), undefined);
   });
 
   it("returns parsed version for versioned paths", () => {
-    expect(getDependencyFromFile("types/a/v3.5")).toEqual({
+    assert.deepStrictEqual(getDependencyFromFile("types/a/v3.5"), {
       typesDirectoryName: "a",
       version: {
         major: 3,
         minor: 5,
       },
     });
-    expect(getDependencyFromFile("types/a/v3")).toEqual({
+    assert.deepStrictEqual(getDependencyFromFile("types/a/v3"), {
       typesDirectoryName: "a",
       version: {
         major: 3,
@@ -284,25 +293,25 @@ describe(getDependencyFromFile, () => {
   });
 
   it("returns undefined for unversioned subpaths", () => {
-    expect(getDependencyFromFile("types/a/vnotaversion")).toEqual({
+    assert.deepStrictEqual(getDependencyFromFile("types/a/vnotaversion"), {
       typesDirectoryName: "a",
       version: "*",
     });
   });
 
   it("returns undefined on package's scripts directory", () => {
-    expect(getDependencyFromFile("types/a/scripts")).toBe("scripts");
+    assert.strictEqual(getDependencyFromFile("types/a/scripts"), "scripts");
   });
 
   it("returns undefined on package's scripts directory with overridden tsVersion", () => {
-    expect(getDependencyFromFile("types/a/ts4.8/scripts")).toBe("scripts");
+    assert.strictEqual(getDependencyFromFile("types/a/ts4.8/scripts"), "scripts");
   });
 
   it("returns undefined on package's scripts directory with overridden packageVersion", () => {
-    expect(getDependencyFromFile("types/a/v18/scripts")).toBe("scripts");
+    assert.strictEqual(getDependencyFromFile("types/a/v18/scripts"), "scripts");
   });
 
   it("returns undefined on package's scripts directory with overridden packageVersion and tsVersion", () => {
-    expect(getDependencyFromFile("types/a/v18/ts4.8/scripts")).toBe("scripts");
+    assert.strictEqual(getDependencyFromFile("types/a/v18/ts4.8/scripts"), "scripts");
   });
 });

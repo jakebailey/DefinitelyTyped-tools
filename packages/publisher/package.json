@@ -2,6 +2,7 @@
   "name": "@definitelytyped/publisher",
   "private": true,
   "version": "0.1.12",
+  "type": "commonjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "description": "Publish DefinitelyTyped definitions to NPM",
@@ -23,7 +24,7 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "../../node_modules/.bin/jest --config ../../jest.config.js packages/publisher",
+    "test": "node --test dist/test/*.test.js",
     "clean": "node --enable-source-maps dist/clean.js",
     "get-definitely-typed": "node --enable-source-maps dist/get-definitely-typed.js",
     "calculate-versions": "node --enable-source-maps dist/calculate-versions.js",

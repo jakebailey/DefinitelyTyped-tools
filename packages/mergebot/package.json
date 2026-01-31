@@ -2,6 +2,7 @@
   "name": "@definitelytyped/mergebot",
   "private": true,
   "version": "0.1.12",
+  "type": "commonjs",
   "description": "The bot that manages DefinitelyTyped PRs.",
   "author": "DT Maintainers",
   "homepage": "https://github.com/microsoft/definitelytyped-tools#readme",
@@ -40,7 +41,6 @@
     "@types/prettyjson": "^0.0.33",
     "@types/yargs": "^17.0.35",
     "esbuild": "^0.27.2",
-    "jest-file-snapshot": "^0.7.0",
     "rimraf": "^6.1.2",
     "seroval": "^1.5.0",
     "typescript": "^5.9.3"
@@ -55,13 +55,6 @@
     "create-fixture": "pnpm run build && node dist/commands/create-fixture.js",
     "update-test-data": "pnpm run build && node dist/commands/update-test-data.js",
     "update-all-fixtures": "pnpm run build && node dist/commands/update-all-fixtures.js",
-    "test": "jest"
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "/dist/"
-    ]
+    "test": "node --test dist/_tests/*.test.js"
   }
 }

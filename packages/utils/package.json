@@ -1,6 +1,7 @@
 {
   "name": "@definitelytyped/utils",
   "version": "0.1.9",
+  "type": "commonjs",
   "description": "Shared utilities for DefinitelyTyped tools",
   "homepage": "https://github.com/microsoft/DefinitelyTyped-tools/tree/main/packages/utils#readme",
   "license": "MIT",
@@ -13,7 +14,7 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "../../node_modules/.bin/jest --config ../../jest.config.js packages/utils"
+    "test": "node --test dist/test/*.test.js"
   },
   "bugs": {
     "url": "https://github.com/microsoft/DefinitelyTyped-tools/issues"

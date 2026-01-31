@@ -1,6 +1,7 @@
 {
   "name": "@definitelytyped/dtslint",
   "version": "0.2.35",
+  "type": "commonjs",
   "description": "Runs tests on TypeScript definition files",
   "main": "./dist/index.js",
   "bin": "./dist/index.js",
@@ -19,7 +20,7 @@
   },
   "scripts": {
     "build": "tsc -b .",
-    "test": "../../node_modules/.bin/jest --config ../../jest.config.js packages/dtslint"
+    "test": "node --test dist/test/*.test.js"
   },
   "dependencies": {
     "@arethetypeswrong/cli": "0.15.1",

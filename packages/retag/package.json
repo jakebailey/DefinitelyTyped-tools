@@ -2,6 +2,7 @@
   "name": "@definitelytyped/retag",
   "private": true,
   "version": "0.1.12",
+  "type": "commonjs",
   "description": "Refresh tags on all DT-published packages in the @types scope.",
   "author": "Nathan Shively-Sanders <293473+sandersn@users.noreply.github.com>",
   "homepage": "https://github.com/microsoft/DefinitelyTyped-tools/tree/main/packages/retag#readme",
@@ -13,7 +14,7 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "../../node_modules/.bin/jest --config ../../jest.config.js packages/retag"
+    "test": "node --test dist/test/*.test.js"
   },
   "bugs": {
     "url": "https://github.com/microsoft/DefinitelyTyped-tools/issues"

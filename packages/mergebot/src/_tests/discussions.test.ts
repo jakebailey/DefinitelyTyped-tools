@@ -1,7 +1,8 @@
-/// <reference types="jest" />
+import { describe, it } from "node:test";
+import assert from "node:assert";
 import { canHandleRequest, extractNPMReference } from "../discussions";
 
-describe(canHandleRequest, () => {
+describe("canHandleRequest", () => {
   const eventActions = [
     ["discussion", "created", true],
     ["discussion", "edited", true],
@@ -9,12 +10,14 @@ describe(canHandleRequest, () => {
     ["pull_request", "created", false],
   ] as const;
 
-  test.concurrent.each(eventActions)("(%s, %s) is %s", async (event, action, expected) => {
-    expect(canHandleRequest(event, action)).toEqual(expected);
-  });
+  for (const [event, action, expected] of eventActions) {
+    it(`(${event}, ${action}) is ${expected}`, async () => {
+      assert.strictEqual(canHandleRequest(event, action), expected);
+    });
+  }
 });
 
-describe(extractNPMReference, () => {
+describe("extractNPMReference", () => {
   const eventActions = [
     ["[node] my thingy", "node"],
     ["OK [react]", "react"],
@@ -22,7 +25,9 @@ describe(extractNPMReference, () => {
     ["[@types/node] needs X", "node"],
   ] as const;
 
-  test.concurrent.each(eventActions)("(%s, %s) is %s", async (title, result) => {
-    expect(extractNPMReference({ title })).toEqual(result);
-  });
+  for (const [title, result] of eventActions) {
+    it(`extracts ${result} from "${title}"`, async () => {
+      assert.strictEqual(extractNPMReference({ title }), result);
+    });
+  }
 });

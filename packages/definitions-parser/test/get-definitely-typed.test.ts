@@ -1,3 +1,4 @@
+import assert from "node:assert";
 import { getDefinitelyTyped } from "../src/get-definitely-typed";
 import { quietLoggerWithErrors, Dir, FS, InMemoryFS } from "@definitelytyped/utils";
 import { testo } from "./utils";
@@ -11,14 +12,14 @@ testo({
       },
       quietLoggerWithErrors()[0],
     );
-    expect(dt.exists("types")).toBe(true);
-    expect(dt.exists("buncho")).toBe(false);
+    assert.strictEqual(dt.exists("types"), true);
+    assert.strictEqual(dt.exists("buncho"), false);
   },
   createDirs() {
     const root = new Dir(undefined);
     root.set("file1.txt", "ok");
-    expect(root.has("file1.txt")).toBe(true);
-    expect(root.get("file1.txt")).toBe("ok");
+    assert.strictEqual(root.has("file1.txt"), true);
+    assert.strictEqual(root.get("file1.txt"), "ok");
   },
   simpleMemoryFS() {
     const root = new Dir(undefined);
@@ -26,8 +27,8 @@ testo({
     const dir = root.subdir("sub1");
     dir.set("file2.txt", "x");
     const fs: FS = new InMemoryFS(root, "/test/");
-    expect(fs.exists("file1.txt")).toBe(true);
-    expect(fs.readFile("file1.txt")).toBe("ok");
-    expect(fs.readFile("sub1/file2.txt")).toBe("x");
+    assert.strictEqual(fs.exists("file1.txt"), true);
+    assert.strictEqual(fs.readFile("file1.txt"), "ok");
+    assert.strictEqual(fs.readFile("sub1/file2.txt"), "x");
   },
 });

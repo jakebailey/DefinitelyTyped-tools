@@ -1,16 +1,27 @@
-import { readdirSync } from "fs";
-import { join } from "path";
-import { toMatchFile } from "jest-file-snapshot";
-import { process } from "../compute-pr-actions";
+import { describe, it, mock } from "node:test";
+import assert from "node:assert";
+import { readdirSync, existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { join, dirname } from "path";
+import * as mockCachedQueries from "./cachedQueries";
+
+// Mock the cachedQueries module before importing modules that depend on it
+mock.module(join(__dirname, "../util/cachedQueries.js"), { namedExports: mockCachedQueries });
+
+import { process as processAction } from "../compute-pr-actions";
 import { deriveStateForPR, PRQueryResponse } from "../pr-info";
 import { readJsonSync, scrubDiagnosticDetails } from "../util/util";
-import * as cachedQueries from "./cachedQueries";
-jest.mock("../util/cachedQueries", () =>
-  Object.fromEntries(Object.entries(cachedQueries).map(([k, v]) => [k, jest.fn(() => Promise.resolve(v))])),
-);
 import { executePrActions } from "../execute-pr-actions";
 
-expect.extend({ toMatchFile });
+function toMatchFile(actual: string, filePath: string): void {
+  const updateSnapshots = globalThis.process.argv.includes("--test-update-snapshots");
+  if (updateSnapshots || !existsSync(filePath)) {
+    mkdirSync(dirname(filePath), { recursive: true });
+    writeFileSync(filePath, actual);
+    return;
+  }
+  const expected = readFileSync(filePath, "utf-8");
+  assert.strictEqual(actual, expected, `Snapshot mismatch for ${filePath}`);
+}
 
 /* You can use the following command to add/update fixtures with an existing PR
  *
@@ -42,16 +53,17 @@ async function testFixture(dir: string) {
     new Date(readJsonSync(derivedPath).now),
   );
 
-  const action = process(derived);
+  const action = processAction(derived);
 
-  expect(jsonString(action)).toMatchFile(resultPath);
-  expect(jsonString(derived)).toMatchFile(derivedPath);
+  toMatchFile(jsonString(action), resultPath);
+  toMatchFile(jsonString(derived), derivedPath);
   const mutations = await executePrActions(action, prInfo, /*dry*/ true);
-  expect(jsonString(mutations)).toMatchFile(mutationsPath);
+  toMatchFile(jsonString(mutations), mutationsPath);
 }
 
 describe("Test fixtures", () => {
-  const fixturesFolder = join(__dirname, "fixtures");
+  // Fixtures are in src/_tests/fixtures, not dist
+  const fixturesFolder = join(__dirname, "../../src/_tests/fixtures");
   readdirSync(fixturesFolder, { withFileTypes: true }).forEach((dirent) => {
     if (dirent.isDirectory()) {
       it(`Fixture: ${dirent.name}`, async () => testFixture(join(fixturesFolder, dirent.name)));
