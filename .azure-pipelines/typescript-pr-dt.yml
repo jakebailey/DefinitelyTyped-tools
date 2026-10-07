@@ -78,9 +78,9 @@ jobs:
         retryCountOnTaskFailure: 3
 
       - task: NodeTool@0
-        displayName: Use Node 22.x
+        displayName: Use Node 24.x
         inputs:
-          versionSpec: 22.x
+          versionSpec: 24.x
 
       - task: GoTool@0
         displayName: Use Go 1.27
@@ -216,9 +216,9 @@ jobs:
           path: $(Pipeline.Workspace)/prFailures
 
       - task: NodeTool@0
-        displayName: Use Node 22.x
+        displayName: Use Node 24.x
         inputs:
-          versionSpec: 22.x
+          versionSpec: 24.x
 
       - bash: |
           set -euo pipefail
