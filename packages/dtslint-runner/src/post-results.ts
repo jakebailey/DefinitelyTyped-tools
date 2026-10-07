@@ -5,8 +5,18 @@ import type { Failure } from "./add-github-links";
 
 type Errors = Failure[];
 
+interface CommentsClient {
+  createComment: (
+    params: Parameters<Octokit["rest"]["issues"]["createComment"]>[0],
+  ) => Promise<{ data: { html_url: string } }>;
+  getComment: (
+    params: Parameters<Octokit["rest"]["issues"]["getComment"]>[0],
+  ) => Promise<{ data: { body?: string | null } }>;
+  updateComment: (params: Parameters<Octokit["rest"]["issues"]["updateComment"]>[0]) => Promise<unknown>;
+}
+
 // Args: [auth token] [buildId] [status comment] [user to tag] [issue] [distinct id] [job status] [?main errors file] [?branch errors file]
-export async function main() {
+export async function main(commentsClient?: CommentsClient) {
   const [auth, buildId, statusCommentId, userToTag, issue, distinctId, status, mainErrorsPath, branchErrorsPath] =
     process.argv.slice(2);
   if (!auth) throw new Error("First argument must be a GitHub auth token.");
@@ -17,7 +27,7 @@ export async function main() {
   if (!distinctId) throw new Error("Sixth argument must be a distinct ID.");
   if (!status) throw new Error("Seventh argument must be a status ('ok' or 'fail').");
 
-  const gh = new Octokit({ auth });
+  const issues = commentsClient ?? new Octokit({ auth }).rest.issues;
   let checkLogsMessage = "";
 
   try {
@@ -78,7 +88,7 @@ export async function main() {
 
     const resultUrls: string[] = [];
     for (const body of comments) {
-      const result = await gh.issues.createComment({
+      const result = await issues.createComment({
         issue_number: +issue,
         owner: "Microsoft",
         repo: "TypeScript",
@@ -91,7 +101,7 @@ export async function main() {
     let posted = false;
     for (let i = 0; i < 5; i++) {
       // Get status comment contents
-      const statusComment = await gh.rest.issues.getComment({
+      const statusComment = await issues.getComment({
         comment_id: +statusCommentId,
         owner: "Microsoft",
         repo: "TypeScript",
@@ -109,7 +119,7 @@ export async function main() {
       );
 
       // Update status comment
-      await gh.rest.issues.updateComment({
+      await issues.updateComment({
         comment_id: +statusCommentId,
         owner: "Microsoft",
         repo: "TypeScript",
@@ -126,7 +136,7 @@ export async function main() {
   } catch (e) {
     console.error(e);
     // TODO(jakebailey): is this a good idea? all that can really fail here is the GH API.
-    await gh.issues.createComment({
+    await issues.createComment({
       issue_number: +issue,
       owner: "Microsoft",
       repo: "TypeScript",
