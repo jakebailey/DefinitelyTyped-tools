@@ -1,6 +1,6 @@
 import { Octokit } from "@octokit/rest";
-import { readFileSync } from "fs";
-import glob = require("glob");
+import { globSync, readFileSync } from "fs";
+import { resolve } from "path";
 import type { Failure } from "./add-github-links";
 
 type Errors = Failure[];
@@ -50,16 +50,16 @@ export async function main(commentsClient?: CommentsClient) {
     } else {
       const mainErrors: Errors = [];
       if (mainErrorsPath) {
-        const mainFiles = glob.sync(`**/*.json`, { cwd: mainErrorsPath, absolute: true });
+        const mainFiles = globSync("**/*.json", { cwd: mainErrorsPath });
         for (const file of mainFiles) {
-          mainErrors.push(...(JSON.parse(readFileSync(file, "utf-8")) as Errors));
+          mainErrors.push(...(JSON.parse(readFileSync(resolve(mainErrorsPath, file), "utf-8")) as Errors));
         }
       }
       const branchErrors: Errors = [];
       if (branchErrorsPath) {
-        const branchFiles = glob.sync(`**/*.json`, { cwd: branchErrorsPath, absolute: true });
+        const branchFiles = globSync("**/*.json", { cwd: branchErrorsPath });
         for (const file of branchFiles) {
-          branchErrors.push(...(JSON.parse(readFileSync(file, "utf-8")) as Errors));
+          branchErrors.push(...(JSON.parse(readFileSync(resolve(branchErrorsPath, file), "utf-8")) as Errors));
         }
       }
 

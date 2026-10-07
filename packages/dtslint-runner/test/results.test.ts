@@ -341,7 +341,12 @@ for (const row of [
           : kind === "same"
             ? [oldError]
             : [];
-    writeFile("results/pr/failures.json", JSON.stringify(branchFailures));
+    writeFile("results/pr/failures.json", JSON.stringify(branchFailures.slice(0, 2)));
+    writeFile("results/pr/shards/failures.json", JSON.stringify(branchFailures.slice(2)));
+    const ignored = JSON.stringify([{ path: "ignored-result", error: "must not be collected" }]);
+    writeFile("results/pr/ignore.txt", ignored);
+    writeFile("results/pr/.hidden.json", ignored);
+    writeFile("results/pr/.hidden-shards/failures.json", ignored);
     writeFile("results/main/failures.json", JSON.stringify(mainFailures));
     process.argv = [
       "node",
@@ -387,9 +392,13 @@ for (const row of [
       t.mock.timers.tick(1);
       await result;
       assert.equal(mockGetComment.mock.callCount(), 2);
-      assert.equal(consoleError.mock.callCount(), 0);
+      assert.deepEqual(
+        consoleError.mock.calls.map((call) => call.arguments[0]),
+        [],
+      );
       assert.equal(mockCreateComment.mock.callCount(), count);
       const bodies = mockCreateComment.mock.calls.map((call) => call.arguments[0].body);
+      assert.ok(!bodies.join("\n").includes("ignored-result"));
       assert.equal(
         bodies.every((body) => body.length <= 65535),
         true,
@@ -401,6 +410,9 @@ for (const row of [
         assert.ok(status.includes(`https://github.com/microsoft/TypeScript/issues/789#issuecomment-${i}`));
       }
       if (kind === "new") {
+        for (const failure of failures) {
+          assert.equal(bodies.join("\n").split(`<code>${failure.path}</code>`).length, 2);
+        }
         assert.ok(bodies.join("\n").includes("&j=job&t=task"));
         assert.ok(status.includes("Part 4"));
         assert.ok(consoleLog.mock.calls[0].arguments[0].includes("Branch only errors:"));
