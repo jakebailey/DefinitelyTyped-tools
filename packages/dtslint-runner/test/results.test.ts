@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { test, before, after } from "node:test";
+import { setImmediate } from "node:timers/promises";
 import { execFileSync } from "child_process";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
@@ -6,20 +9,6 @@ import { addGithubLinks, Failure } from "../src/add-github-links";
 import { getDiffComment, getDiffLog, getResultComments, main } from "../src/post-results";
 
 type CommentsClient = NonNullable<Parameters<typeof main>[0]>;
-const mockCreateComment = jest.fn<
-  ReturnType<CommentsClient["createComment"]>,
-  Parameters<CommentsClient["createComment"]>
->();
-const mockGetComment = jest.fn<ReturnType<CommentsClient["getComment"]>, Parameters<CommentsClient["getComment"]>>();
-const mockUpdateComment = jest.fn<
-  ReturnType<CommentsClient["updateComment"]>,
-  Parameters<CommentsClient["updateComment"]>
->();
-const commentsClient: CommentsClient = {
-  createComment: mockCreateComment,
-  getComment: mockGetComment,
-  updateComment: mockUpdateComment,
-};
 
 const repoUrl = "https://github.com/DefinitelyTyped/DefinitelyTyped";
 let checkout: string;
@@ -36,7 +25,7 @@ function writeFile(path: string, contents = ""): string {
   return file;
 }
 
-beforeAll(() => {
+before(() => {
   checkout = mkdtempSync(join(tmpdir(), "dt-result-links-"));
   git("init", "--quiet");
   writeFile("types/example/package.json", "{}");
@@ -72,7 +61,7 @@ beforeAll(() => {
   symlinkSync(join(checkout, "types/dependency"), join(checkout, "types/example/node_modules/dependency"), "dir");
 });
 
-afterAll(() => {
+after(() => {
   rmSync(checkout, { recursive: true, force: true });
 });
 
@@ -81,18 +70,21 @@ test("adds pinned package and Corsa diagnostic links without changing the raw er
   const error = `${file}:12:3\nTypeScript@local compile error TS2322: Type '<T>' is not assignable.\n\nindex.d.ts:2:1\nExpected type.`;
   const failures: Failure[] = [{ path: "example", error }];
   await addGithubLinks(failures, checkout);
-  expect(failures[0].error).toBe(error);
-  expect(failures[0].packageUrl).toBe(`${repoUrl}/tree/${commit}/types/example`);
-  expect(failures[0].errorLinks?.map(({ start, end, url }) => [error.slice(start, end), url])).toEqual([
-    [`${file}:12:3`, `${repoUrl}/blob/${commit}/types/example/example-tests.ts#L12`],
-    ["index.d.ts:2:1", `${repoUrl}/blob/${commit}/types/example/index.d.ts#L2`],
-  ]);
-  const comment = getDiffComment([], failures)!;
-  expect(comment).toContain(`<code><a href="${repoUrl}/tree/${commit}/types/example">example</a></code>`);
-  expect(comment).toContain(
-    `<pre><a href="${repoUrl}/blob/${commit}/types/example/example-tests.ts#L12">${file}:12:3</a>`,
+  assert.equal(failures[0].error, error);
+  assert.equal(failures[0].packageUrl, `${repoUrl}/tree/${commit}/types/example`);
+  assert.deepEqual(
+    failures[0].errorLinks?.map(({ start, end, url }) => [error.slice(start, end), url]),
+    [
+      [`${file}:12:3`, `${repoUrl}/blob/${commit}/types/example/example-tests.ts#L12`],
+      ["index.d.ts:2:1", `${repoUrl}/blob/${commit}/types/example/index.d.ts#L2`],
+    ],
   );
-  expect(comment).toContain("Type '&lt;T&gt;' is not assignable.");
+  const comment = getDiffComment([], failures)!;
+  assert.ok(comment.includes(`<code><a href="${repoUrl}/tree/${commit}/types/example">example</a></code>`));
+  assert.ok(
+    comment.includes(`<pre><a href="${repoUrl}/blob/${commit}/types/example/example-tests.ts#L12">${file}:12:3</a>`),
+  );
+  assert.ok(comment.includes("Type '&lt;T&gt;' is not assignable."));
 });
 
 test("links ESLint stylish headers and individual error lines, including CRLF", async () => {
@@ -100,11 +92,14 @@ test("links ESLint stylish headers and individual error lines, including CRLF", 
   const error = `\r\n${file}\r\n  2:3  error  First error\r\n       With elaboration\r\n  4:5  warning  Second error\r\n\r\n2 problems`;
   const failures: Failure[] = [{ path: "example", error }];
   await addGithubLinks(failures, checkout);
-  expect(failures[0].errorLinks?.map(({ start, end, url }) => [error.slice(start, end), url])).toEqual([
-    [file, `${repoUrl}/blob/${commit}/types/example/index.d.ts`],
-    ["2:3", `${repoUrl}/blob/${commit}/types/example/index.d.ts#L2`],
-    ["4:5", `${repoUrl}/blob/${commit}/types/example/index.d.ts#L4`],
-  ]);
+  assert.deepEqual(
+    failures[0].errorLinks?.map(({ start, end, url }) => [error.slice(start, end), url]),
+    [
+      [file, `${repoUrl}/blob/${commit}/types/example/index.d.ts`],
+      ["2:3", `${repoUrl}/blob/${commit}/types/example/index.d.ts#L2`],
+      ["4:5", `${repoUrl}/blob/${commit}/types/example/index.d.ts#L4`],
+    ],
+  );
 });
 
 test("resolves versioned packages, workspace dependencies, and tsc locations", async () => {
@@ -113,9 +108,9 @@ test("resolves versioned packages, workspace dependencies, and tsc locations", a
     { path: "example", error: "node_modules/dependency/index.d.ts:5:6\nExample" },
   ];
   await addGithubLinks(failures, checkout);
-  expect(failures[0].packageUrl).toBe(`${repoUrl}/tree/${commit}/types/example/v1`);
-  expect(failures[0].errorLinks?.[0].url).toBe(`${repoUrl}/blob/${commit}/types/example/v1/index.d.ts#L3`);
-  expect(failures[1].errorLinks?.[0].url).toBe(`${repoUrl}/blob/${commit}/types/dependency/index.d.ts#L5`);
+  assert.equal(failures[0].packageUrl, `${repoUrl}/tree/${commit}/types/example/v1`);
+  assert.equal(failures[0].errorLinks?.[0].url, `${repoUrl}/blob/${commit}/types/example/v1/index.d.ts#L3`);
+  assert.equal(failures[1].errorLinks?.[0].url, `${repoUrl}/blob/${commit}/types/dependency/index.d.ts#L5`);
 });
 
 test("leaves untracked, missing, installed, and external files unlinked", async () => {
@@ -132,16 +127,19 @@ test("leaves untracked, missing, installed, and external files unlinked", async 
     },
   ];
   await addGithubLinks(failures, checkout);
-  expect(failures[0].errorLinks).toEqual([]);
-  expect(getDiffComment([], failures)).toContain(`<pre>${failures[0].error}</pre>`);
+  assert.deepEqual(failures[0].errorLinks, []);
+  const comment = getDiffComment([], failures);
+  assert.ok(comment);
+  assert.ok(comment.includes(`<pre>${failures[0].error}</pre>`));
 });
 
 test("handles empty failure lists and fails explicitly when the checkout has no GitHub remote", async () => {
-  await expect(addGithubLinks([], checkout)).resolves.toBeUndefined();
+  assert.equal(await addGithubLinks([], checkout), undefined);
   git("remote", "remove", "origin");
   try {
-    await expect(addGithubLinks([{ path: "example", error: "Out of memory" }], checkout)).rejects.toThrow(
-      "not present on any remote",
+    await assert.rejects(
+      addGithubLinks([{ path: "example", error: "Out of memory" }], checkout),
+      /not present on any remote/,
     );
   } finally {
     git("remote", "add", "origin", `${repoUrl}.git`);
@@ -150,13 +148,14 @@ test("handles empty failure lists and fails explicitly when the checkout has no 
 });
 
 test("compares only raw errors, not link metadata", () => {
-  expect(
+  assert.equal(
     getDiffComment(
       [{ path: "example", error: "same" }],
       [{ path: "example", error: "same", packageUrl: `${repoUrl}/tree/different/types/example`, errorLinks: [] }],
     ),
-  ).toBeUndefined();
-  expect(getDiffComment([], [])).toBeUndefined();
+    undefined,
+  );
+  assert.equal(getDiffComment([], []), undefined);
 });
 
 test("renders all three difference categories, retaining each side's links", () => {
@@ -172,13 +171,13 @@ test("renders all three difference categories, retaining each side's links", () 
       { path: "changed", error: "new", errorLinks: [{ start: 0, end: 3, url: branchUrl }] },
     ],
   )!;
-  expect(comment).toContain("<summary>Branch only errors:</summary>");
-  expect(comment).toContain("<summary>Main only errors:</summary>");
-  expect(comment).toContain("<summary>Errors that changed between main and the branch:</summary>");
-  expect(comment).toContain(`<pre><a href="${mainUrl}">old</a></pre>`);
-  expect(comment).toContain(`<pre><a href="${branchUrl}">new</a></pre>`);
-  expect(comment).toContain("<pre>old failure</pre>");
-  expect(comment).toContain("<pre>new failure</pre>");
+  assert.ok(comment.includes("<summary>Branch only errors:</summary>"));
+  assert.ok(comment.includes("<summary>Main only errors:</summary>"));
+  assert.ok(comment.includes("<summary>Errors that changed between main and the branch:</summary>"));
+  assert.ok(comment.includes(`<pre><a href="${mainUrl}">old</a></pre>`));
+  assert.ok(comment.includes(`<pre><a href="${branchUrl}">new</a></pre>`));
+  assert.ok(comment.includes("<pre>old failure</pre>"));
+  assert.ok(comment.includes("<pre>new failure</pre>"));
 });
 
 test("escapes diagnostic HTML and refuses non-DT links", () => {
@@ -194,10 +193,10 @@ test("escapes diagnostic HTML and refuses non-DT links", () => {
       },
     ],
   )!;
-  expect(comment).toContain("Package: <code>&lt;example&gt;</code>");
-  expect(comment).toContain("&lt;/pre&gt;&lt;script&gt;alert(&quot;oops&quot;)&lt;/script&gt;\n```\n&amp; &lt;T&gt;");
-  expect(comment).not.toContain("<script>");
-  expect(comment).not.toContain("<a ");
+  assert.ok(comment.includes("Package: <code>&lt;example&gt;</code>"));
+  assert.ok(comment.includes("&lt;/pre&gt;&lt;script&gt;alert(&quot;oops&quot;)&lt;/script&gt;\n```\n&amp; &lt;T&gt;"));
+  assert.ok(!comment.includes("<script>"));
+  assert.ok(!comment.includes("<a "));
 });
 
 test("links project-level errors to the default and explicitly configured tsconfigs", async () => {
@@ -206,16 +205,18 @@ test("links project-level errors to the default and explicitly configured tsconf
     { path: "example/v1", error: "Project-level failure" },
   ];
   await addGithubLinks(failures, checkout);
-  expect(failures[0].projects).toEqual([
+  assert.deepEqual(failures[0].projects, [
     { path: "tsconfig.json", url: `${repoUrl}/blob/${commit}/types/example/tsconfig.json` },
   ]);
-  expect(failures[1].projects).toEqual([
+  assert.deepEqual(failures[1].projects, [
     { path: "tsconfig.json", url: `${repoUrl}/blob/${commit}/types/example/v1/tsconfig.json` },
     { path: "tsconfig.other.json", url: `${repoUrl}/blob/${commit}/types/example/v1/tsconfig.other.json` },
   ]);
   const comment = getDiffComment([], failures)!;
-  expect(comment).toContain(`Project scope: <code><a href="${failures[0].projects![0].url}">tsconfig.json</a></code>`);
-  expect(comment).toContain(`href="${failures[1].projects![1].url}"`);
+  assert.ok(
+    comment.includes(`Project scope: <code><a href="${failures[0].projects![0].url}">tsconfig.json</a></code>`),
+  );
+  assert.ok(comment.includes(`href="${failures[1].projects![1].url}"`));
 });
 
 test("logs full raw diagnostics and explicit URLs instead of HTML or Markdown", async () => {
@@ -223,43 +224,47 @@ test("logs full raw diagnostics and explicit URLs instead of HTML or Markdown", 
   const failures: Failure[] = [{ path: "example", error }];
   await addGithubLinks(failures, checkout);
   const log = getDiffLog([], failures);
-  expect(log).toContain("Type <T> & Other");
-  expect(log).toContain(`index.d.ts:2:1 -> ${repoUrl}/blob/${commit}/types/example/index.d.ts#L2`);
-  expect(log).toContain(`Project: tsconfig.json\n  ${repoUrl}/blob/${commit}/types/example/tsconfig.json`);
-  expect(log).not.toMatch(/<pre>|<a href|<details>|&lt;/);
-  expect(log).not.toContain("##vso[");
-  expect(log).toContain("# #vso[task.setvariable variable=foo]bar");
-  expect(log.split("\n").every((line) => !line || line.startsWith("  "))).toBe(true);
-  expect(getDiffLog(failures, failures)).toBe("");
+  assert.ok(log.includes("Type <T> & Other"));
+  assert.ok(log.includes(`index.d.ts:2:1 -> ${repoUrl}/blob/${commit}/types/example/index.d.ts#L2`));
+  assert.ok(log.includes(`Project: tsconfig.json\n  ${repoUrl}/blob/${commit}/types/example/tsconfig.json`));
+  assert.doesNotMatch(log, /<pre>|<a href|<details>|&lt;/);
+  assert.ok(!log.includes("##vso["));
+  assert.ok(log.includes("# #vso[task.setvariable variable=foo]bar"));
+  assert.equal(
+    log.split("\n").every((line) => !line || line.startsWith("  ")),
+    true,
+  );
+  assert.equal(getDiffLog(failures, failures), "");
 });
 
 const logUrl = "https://dev.azure.com/example/project/_build/results?buildId=123&view=logs";
 
 function expectBalancedComments(comments: string[]) {
   for (const comment of comments) {
-    expect(comment.length).toBeLessThanOrEqual(65535);
+    assert.ok(comment.length <= 65535);
     for (const tag of ["details", "pre", "code", "a"]) {
-      expect(comment.match(new RegExp(`<${tag}(?:>| )`, "g"))?.length ?? 0).toBe(
+      assert.equal(
+        comment.match(new RegExp(`<${tag}(?:>| )`, "g"))?.length ?? 0,
         comment.match(new RegExp(`</${tag}>`, "g"))?.length ?? 0,
       );
     }
-    expect(comment).toContain(`[Full output in the log](${logUrl}).`);
+    assert.ok(comment.includes(`[Full output in the log](${logUrl}).`));
   }
 }
 
 test("paginates at package boundaries without losing any reports", () => {
   const failures = Array.from({ length: 8 }, (_, i) => ({ path: `package-${i}`, error: `${i}:` + "x".repeat(20000) }));
   const comments = getResultComments([], failures, "tester", logUrl);
-  expect(comments.length).toBeGreaterThan(1);
+  assert.ok(comments.length > 1);
   expectBalancedComments(comments);
-  expect(comments[0]).toContain("the results of running");
-  expect(comments[1]).toContain("here are more DT test results");
+  assert.ok(comments[0].includes("the results of running"));
+  assert.ok(comments[1].includes("here are more DT test results"));
   const combined = comments.join("\n");
   for (const failure of failures) {
-    expect(combined.split(`Package: <code>${failure.path}</code>`)).toHaveLength(2);
-    expect(combined).toContain(failure.error);
+    assert.equal(combined.split(`Package: <code>${failure.path}</code>`).length, 2);
+    assert.ok(combined.includes(failure.error));
   }
-  expect(combined).not.toContain("truncated");
+  assert.ok(!combined.includes("truncated"));
 });
 
 test("fits the exact comment limit and starts a new comment when adding another report", () => {
@@ -267,9 +272,9 @@ test("fits the exact comment limit and starts a new comment when adding another 
   const overhead = getResultComments([], [failure], "tester", logUrl)[0].length;
   failure.error = "x".repeat(65535 - overhead);
   const comments = getResultComments([], [failure, { path: "next", error: "next" }], "tester", logUrl);
-  expect(comments).toHaveLength(2);
-  expect(comments[0]).toHaveLength(65535);
-  expect(comments[0]).not.toContain("truncated");
+  assert.equal(comments.length, 2);
+  assert.equal(comments[0].length, 65535);
+  assert.ok(!comments[0].includes("truncated"));
   expectBalancedComments(comments);
 });
 
@@ -281,18 +286,18 @@ test("safely truncates oversized individual reports but retains full linked outp
     errorLinks: [{ start: 0, end: "index.d.ts:1:1".length, url }],
   };
   const comments = getResultComments([], [failure, { path: "next", error: "still included" }], "tester", logUrl);
-  expect(comments).toHaveLength(2);
+  assert.equal(comments.length, 2);
   expectBalancedComments(comments);
-  expect(comments[0]).toContain(`<a href="${url}">index.d.ts:1:1</a>`);
-  expect(comments[0]).toContain("&lt;&amp;&quot;😀&gt;");
-  expect(comments[0]).toContain("[... truncated ...]");
-  expect(comments[0]).toContain("This package report was truncated");
-  expect(Buffer.from(comments[0]).toString("utf8")).toBe(comments[0]);
-  expect(comments[1]).toContain("still included");
+  assert.ok(comments[0].includes(`<a href="${url}">index.d.ts:1:1</a>`));
+  assert.ok(comments[0].includes("&lt;&amp;&quot;😀&gt;"));
+  assert.ok(comments[0].includes("[... truncated ...]"));
+  assert.ok(comments[0].includes("This package report was truncated"));
+  assert.equal(Buffer.from(comments[0]).toString("utf8"), comments[0]);
+  assert.ok(comments[1].includes("still included"));
   const log = getDiffLog([], [failure]);
-  expect(log).toContain(failure.error.split("\n").join("\n  "));
-  expect(log).toContain(url);
-  expect(log).not.toContain("truncated");
+  assert.ok(log.includes(failure.error.split("\n").join("\n  ")));
+  assert.ok(log.includes(url));
+  assert.ok(!log.includes("truncated"));
 });
 
 test("keeps both sides and balanced markup when a changed report exceeds the limit", () => {
@@ -302,95 +307,112 @@ test("keeps both sides and balanced markup when a changed report exceeds the lim
     "tester",
     logUrl,
   );
-  expect(comments).toHaveLength(1);
+  assert.equal(comments.length, 1);
   expectBalancedComments(comments);
-  expect(comments[0]).toContain("Main error:");
-  expect(comments[0]).toContain("Branch error:");
-  expect(comments[0]).toContain("&lt;old&gt;");
-  expect(comments[0]).toContain("&lt;new&gt;");
+  assert.ok(comments[0].includes("Main error:"));
+  assert.ok(comments[0].includes("Branch error:"));
+  assert.ok(comments[0].includes("&lt;old&gt;"));
+  assert.ok(comments[0].includes("&lt;new&gt;"));
 });
 
-test.each([
+for (const row of [
   { scenario: "branch-only errors across multiple chunks", kind: "new", emoji: "👀", count: 4 },
   { scenario: "main-only errors", kind: "fixed", emoji: "✅", count: 1 },
   { scenario: "changed errors", kind: "changed", emoji: "👀", count: 1 },
   { scenario: "unchanged errors", kind: "same", emoji: "✅", count: 1 },
   { scenario: "no errors", kind: "empty", emoji: "✅", count: 1 },
   { scenario: "infrastructure failure", kind: "fail", emoji: "❌", count: 1 },
-])("posts results and updates the status for $scenario", async ({ kind, emoji, count }) => {
-  const args = process.argv;
-  const env = { ...process.env };
-  const consoleLog = jest.spyOn(console, "log").mockImplementation(() => {});
-  const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
-  jest.useFakeTimers();
-  const failures = Array.from({ length: 4 }, (_, i) => ({ path: `package-${i}`, error: "x".repeat(40000) }));
-  const oldError = { path: "example", error: "old error" };
-  const mainFailures = ["fixed", "changed", "same"].includes(kind) ? [oldError] : [];
-  const branchFailures =
-    kind === "new"
-      ? failures
-      : kind === "changed"
-        ? [{ path: "example", error: "new error" }]
-        : kind === "same"
-          ? [oldError]
-          : [];
-  writeFile("results/pr/failures.json", JSON.stringify(branchFailures));
-  writeFile("results/main/failures.json", JSON.stringify(mainFailures));
-  process.argv = [
-    "node",
-    "post-results",
-    "fake-token",
-    "123",
-    "456",
-    "tester",
-    "789",
-    "test-run",
-    kind === "fail" ? "fail" : "ok",
-    join(checkout, "results/main"),
-    join(checkout, "results/pr"),
-  ];
-  process.env.SYSTEM_COLLECTIONURI = "https://dev.azure.com/example/";
-  process.env.SYSTEM_TEAMPROJECT = "project";
-  process.env.SYSTEM_JOBID = "job";
-  process.env.SYSTEM_TASKINSTANCEID = "task";
-  mockCreateComment.mockReset().mockImplementation(async () => ({
-    data: {
-      html_url: `https://github.com/microsoft/TypeScript/issues/789#issuecomment-${mockCreateComment.mock.calls.length}`,
-    },
-  }));
-  mockGetComment
-    .mockReset()
-    .mockResolvedValueOnce({ data: { body: "Status: <!--result-test-run-->" } })
-    .mockResolvedValue({ data: { body: "Status: updated" } });
-  mockUpdateComment.mockReset().mockResolvedValue({});
-  try {
-    const result = main(commentsClient);
-    await jest.runAllTimersAsync();
-    await result;
-    expect(consoleError).not.toHaveBeenCalled();
-    expect(mockCreateComment).toHaveBeenCalledTimes(count);
-    const bodies = mockCreateComment.mock.calls.map(([arg]) => arg.body);
-    expect(bodies.every((body) => body.length <= 65535)).toBe(true);
-    const status = mockUpdateComment.mock.calls[0][0].body;
-    expect(status).toContain(`[${emoji} Results]`);
-    for (let i = 1; i <= count; i++) {
-      expect(status).toContain(`https://github.com/microsoft/TypeScript/issues/789#issuecomment-${i}`);
+] as const) {
+  test(`posts results and updates the status for ${row.scenario}`, async (t) => {
+    const { kind, emoji, count } = row;
+    const args = process.argv;
+    const env = { ...process.env };
+    const consoleLog = t.mock.method(console, "log", () => {});
+    const consoleError = t.mock.method(console, "error", () => {});
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const failures = Array.from({ length: 4 }, (_, i) => ({ path: `package-${i}`, error: "x".repeat(40000) }));
+    const oldError = { path: "example", error: "old error" };
+    const mainFailures = ["fixed", "changed", "same"].includes(kind) ? [oldError] : [];
+    const branchFailures =
+      kind === "new"
+        ? failures
+        : kind === "changed"
+          ? [{ path: "example", error: "new error" }]
+          : kind === "same"
+            ? [oldError]
+            : [];
+    writeFile("results/pr/failures.json", JSON.stringify(branchFailures));
+    writeFile("results/main/failures.json", JSON.stringify(mainFailures));
+    process.argv = [
+      "node",
+      "post-results",
+      "fake-token",
+      "123",
+      "456",
+      "tester",
+      "789",
+      "test-run",
+      kind === "fail" ? "fail" : "ok",
+      join(checkout, "results/main"),
+      join(checkout, "results/pr"),
+    ];
+    process.env.SYSTEM_COLLECTIONURI = "https://dev.azure.com/example/";
+    process.env.SYSTEM_TEAMPROJECT = "project";
+    process.env.SYSTEM_JOBID = "job";
+    process.env.SYSTEM_TASKINSTANCEID = "task";
+    let commentCount = 0;
+    const mockCreateComment = t.mock.fn<CommentsClient["createComment"]>(async () => ({
+      data: {
+        html_url: `https://github.com/microsoft/TypeScript/issues/789#issuecomment-${++commentCount}`,
+      },
+    }));
+    let statusReads = 0;
+    const mockGetComment = t.mock.fn<CommentsClient["getComment"]>(async () => ({
+      data: { body: statusReads++ === 0 ? "Status: <!--result-test-run-->" : "Status: updated" },
+    }));
+    const mockUpdateComment = t.mock.fn<CommentsClient["updateComment"]>(async () => ({}));
+    const commentsClient: CommentsClient = {
+      createComment: mockCreateComment,
+      getComment: mockGetComment,
+      updateComment: mockUpdateComment,
+    };
+    try {
+      const result = main(commentsClient);
+      await setImmediate();
+      assert.equal(mockGetComment.mock.callCount(), 1);
+      assert.equal(mockUpdateComment.mock.callCount(), 1);
+      t.mock.timers.tick(999);
+      await setImmediate();
+      assert.equal(mockGetComment.mock.callCount(), 1);
+      t.mock.timers.tick(1);
+      await result;
+      assert.equal(mockGetComment.mock.callCount(), 2);
+      assert.equal(consoleError.mock.callCount(), 0);
+      assert.equal(mockCreateComment.mock.callCount(), count);
+      const bodies = mockCreateComment.mock.calls.map((call) => call.arguments[0].body);
+      assert.equal(
+        bodies.every((body) => body.length <= 65535),
+        true,
+      );
+      const status = mockUpdateComment.mock.calls[0].arguments[0].body;
+      assert.ok(status);
+      assert.ok(status.includes(`[${emoji} Results]`));
+      for (let i = 1; i <= count; i++) {
+        assert.ok(status.includes(`https://github.com/microsoft/TypeScript/issues/789#issuecomment-${i}`));
+      }
+      if (kind === "new") {
+        assert.ok(bodies.join("\n").includes("&j=job&t=task"));
+        assert.ok(status.includes("Part 4"));
+        assert.ok(consoleLog.mock.calls[0].arguments[0].includes("Branch only errors:"));
+        assert.ok(!consoleLog.mock.calls[0].arguments[0].includes("<pre>"));
+      }
+      if (kind === "fixed") {
+        assert.ok(bodies[0].includes("Main only errors:"));
+        assert.ok(bodies[0].includes(oldError.error));
+      }
+    } finally {
+      process.argv = args;
+      process.env = env;
     }
-    if (kind === "new") {
-      expect(bodies.join("\n")).toContain("&j=job&t=task");
-      expect(status).toContain("Part 4");
-      expect(consoleLog.mock.calls[0][0]).toContain("Branch only errors:");
-      expect(consoleLog.mock.calls[0][0]).not.toContain("<pre>");
-    }
-    if (kind === "fixed") {
-      expect(bodies[0]).toContain("Main only errors:");
-      expect(bodies[0]).toContain(oldError.error);
-    }
-  } finally {
-    process.argv = args;
-    process.env = env;
-    jest.useRealTimers();
-    consoleLog.mockRestore();
-    consoleError.mockRestore();
-  }
-});
+  });
+}
